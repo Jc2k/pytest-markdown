@@ -7,7 +7,7 @@ sudo: false
 cache: pip
 
 install:
-  - pip install flit -r requirements.txt
+  - pip install flit flake8-isort pytest coverage
   - flit install --symlink
 
 script:

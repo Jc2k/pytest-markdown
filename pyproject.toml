@@ -22,3 +22,10 @@ classifiers=[
 
 [tool.flit.entrypoints."pytest11"]
 docker_tools = "pytest_markdown.plugin"
+
+#[tool.flit.metadata.requires-extra]
+#test = [
+#    'pytest',
+#    'flake8',
+#    'flake8-isort',
+#]
