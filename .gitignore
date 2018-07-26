@@ -1,0 +1,5 @@
+__pycache__
+.pytest_cache/
+pytest_markdown.egg-info
+*.pyc
+venv
