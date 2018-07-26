@@ -8,7 +8,7 @@ author = "John Carr"
 author-email = "john.carr@unrouted.co.uk"
 home-page = "https://github.com/Jc2k/pytest-markdown"
 
-requires=['pytest>=3.6.0']
+requires=['pytest>=3.6.0', 'mistletoe>=0.7.1']
 requires-python='>=3.6'
 
 description-file='README.md'

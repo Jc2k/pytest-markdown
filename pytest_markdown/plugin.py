@@ -2,6 +2,7 @@ import imp
 
 import pytest
 from _pytest.python import Module
+from mistletoe.base_renderer import BaseRenderer
 
 
 class MarkdownItem(Module):
@@ -15,56 +16,69 @@ class MarkdownItem(Module):
         return self._code_obj
 
 
+class MarkdownCollector(BaseRenderer):
+
+    def __init__(self, item):
+        super().__init__()
+        self.item = item
+        self.stack = [(0, self.item, self.item.name,)]
+        self.collected = []
+
+    def render_heading(self, token):
+        name = ''.join(self.render(c) for c in token.children).lower().replace(' ', '-')
+
+        while self.stack[-1][0] >= token.level:
+            self.stack.pop()
+
+        nodeid = '::'.join(s[2] for s in self.stack) + '::' + name
+        self.stack.append((
+            token.level,
+            pytest.Item(name, self.stack[-1][1], nodeid=nodeid),
+            name
+        ))
+
+        return ''
+
+    def render_block_code(self, token):
+        if token.language != 'python':
+            return ''
+
+        output = ''.join(c.content for c in token.children)
+
+        if output.startswith('\n'):
+            return ''
+
+        name = f'line_{token.start}'
+
+        if output.lower().strip().startswith('# conftest.py\n'):
+            nodeid = self.stack[-1][1].nodeid
+        else:
+            nodeid = self.stack[-1][1].nodeid + '::' + name
+
+        mi = MarkdownItem(
+            name,
+            self.stack[-1][1],
+            output,
+            nodeid=nodeid
+        )
+        self.collected.append(mi)
+
+        return ''
+
+    def collect(self, token):
+        self.render(token)
+        return self.collected
+
+
 class MarkdownFile(pytest.File):
 
     def collect(self):
-        print(self.nodeid)
-        mode = None
-        stack = [(0, self, self.name)]
-        output = []
         fp = self.fspath.open()
-        for i, line in enumerate(fp.readlines()):
-            if mode is None and line.strip() == '```python':
-                mode = 'first_line'
-                continue
 
-            elif mode is None:
-                if line.startswith('#'):
-                    level, name = line.split(' ', 1)
-                    name = name.strip().lower().replace(' ', '-')
-                    level_count = len(level)
-
-                    while stack[-1][0] >= level_count:
-                        stack.pop()
-
-                    nodeid = '::'.join(s[2] for s in stack if s[2]) + '::' + name
-                    stack.append((level_count, pytest.Item(name, stack[-1][1], nodeid=nodeid), name))
-                    print(stack[-1][1].nodeid)
-
-            elif mode is 'first_line':
-                if line.strip() == '':
-                    mode = None
-                    continue
-                mode = 'test'
-                output.append(line)
-
-            elif line.strip() == '```':
-                if mode == 'test':
-                    name = f'line_{i}'
-                    if output[0].lower().strip() == '# conftest.py':
-                        nodeid = stack[-1][1].nodeid
-                    else:
-                        nodeid = stack[-1][1].nodeid + '::' + name
-                    mi = MarkdownItem(name, stack[-1][1], '\n'.join(output), nodeid=nodeid)
-                    print(mi.nodeid)
-                    yield mi
-
-                output = []
-                mode = None
-                continue
-
-            elif mode == 'test':
-                output.append(line)
+        from mistletoe import Document
+        with MarkdownCollector(self) as collector:
+            for item in collector.collect(Document(fp)):
+                yield item
 
 
 def pytest_collect_file(parent, path):
