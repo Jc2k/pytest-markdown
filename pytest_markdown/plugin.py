@@ -2,7 +2,6 @@ import imp
 
 import pytest
 from _pytest.python import Module
-from _pytest import nodes
 
 
 class MarkdownItem(Module):
@@ -41,8 +40,6 @@ class MarkdownFile(pytest.File):
                     nodeid = '::'.join(s[2] for s in stack if s[2]) + '::' + name
                     stack.append((level_count, pytest.Item(name, stack[-1][1], nodeid=nodeid), name))
                     print(stack[-1][1].nodeid)
-
-                    current_level = level_count
 
             elif mode is 'first_line':
                 if line.strip() == '':
