@@ -1,8 +1,8 @@
 import imp
 
+import CommonMark
 import pytest
 from _pytest.python import Module
-from mistletoe.base_renderer import BaseRenderer
 
 
 class MarkdownItem(Module):
@@ -16,20 +16,54 @@ class MarkdownItem(Module):
         return self._code_obj
 
 
-class MarkdownCollector(BaseRenderer):
+def collect_literals_from_children(token):
+    literals = []
+    stack = [token.first_child]
+    while stack:
+        cur = stack.pop()
+        if cur.literal:
+            literals.append(cur.literal)
+        if cur.nxt:
+            stack.append(cur.nxt)
+        if cur.first_child:
+            stack.append(cur.first_child)
+    return ''.join(literals)
+
+
+class MarkdownCollector(object):
 
     def __init__(self, item):
         super().__init__()
         self.item = item
+        self.ast = CommonMark.Parser().parse(self.item.fspath.open().read())
         self.stack = [(0, self.item, self.item.name,)]
         self.collected = []
 
-    def render_heading(self, token):
-        name = ''.join(self.render(c) for c in token.children).lower().replace(' ', '-')
+    def collect(self):
+        self.stack = [(0, self.item, self.item.name,)]
+        self.collected = []
 
+        walker = self.ast.walker()
+
+        event = walker.nxt()
+        while event is not None:
+            if not event['entering']:
+                event = walker.nxt()
+                continue
+
+            type_ = event['node'].t
+            if hasattr(self, type_):
+                getattr(self, type_)(event['node'])
+
+            event = walker.nxt()
+
+        return self.collected
+
+    def heading(self, token):
         while self.stack[-1][0] >= token.level:
             self.stack.pop()
 
+        name = collect_literals_from_children(token).lower().replace(' ', '-')
         nodeid = '::'.join(s[2] for s in self.stack) + '::' + name
         self.stack.append((
             token.level,
@@ -37,18 +71,16 @@ class MarkdownCollector(BaseRenderer):
             name
         ))
 
-        return ''
+    def code_block(self, token):
+        if token.info != 'python':
+            return
 
-    def render_block_code(self, token):
-        if token.language != 'python':
-            return ''
-
-        output = ''.join(c.content for c in token.children)
+        output = token.literal
 
         if output.startswith('\n'):
             return ''
 
-        name = f'line_{token.start}'
+        name = f'line_{token.sourcepos[0][0]}'
 
         if output.lower().strip().startswith('# conftest.py\n'):
             nodeid = self.stack[-1][1].nodeid
@@ -65,20 +97,12 @@ class MarkdownCollector(BaseRenderer):
 
         return ''
 
-    def collect(self, token):
-        self.render(token)
-        return self.collected
-
 
 class MarkdownFile(pytest.File):
 
     def collect(self):
-        fp = self.fspath.open()
-
-        from mistletoe import Document
-        with MarkdownCollector(self) as collector:
-            for item in collector.collect(Document(fp)):
-                yield item
+        for item in MarkdownCollector(self).collect():
+            yield item
 
 
 def pytest_collect_file(parent, path):

@@ -1,4 +1,4 @@
-# Header 1
+# Header **1**
 
 You can define a conftest.py in the top of your markdown file:
 
@@ -57,7 +57,7 @@ def test_1(example):
     assert example == 1234
 ```
 
-### Header 3a
+### Header **3a**
 
 Defining a new child - 3 levels deep - it can see the parent conftest.
 
