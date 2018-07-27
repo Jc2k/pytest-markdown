@@ -51,15 +51,15 @@ class MarkdownCollector(object):
                 event = walker.nxt()
                 continue
 
-            type_ = event['node'].t
-            if hasattr(self, type_):
-                getattr(self, type_)(event['node'])
+            func = 'visit_' + event['node'].t
+            if hasattr(self, func):
+                getattr(self, func)(event['node'])
 
             event = walker.nxt()
 
         return self.collected
 
-    def heading(self, token):
+    def visit_heading(self, token):
         while self.stack[-1][0] >= token.level:
             self.stack.pop()
 
@@ -71,7 +71,7 @@ class MarkdownCollector(object):
             name
         ))
 
-    def code_block(self, token):
+    def visit_code_block(self, token):
         if token.info != 'python':
             return
 
