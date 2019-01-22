@@ -3,6 +3,7 @@ import types
 from linecache import cache
 
 import commonmark
+import py
 import pytest
 from _pytest.assertion.rewrite import rewrite_asserts
 from _pytest.python import Module
@@ -15,7 +16,7 @@ def create_pytest_module(name, path, source, config):
     except SyntaxError:
         return None
 
-    rewrite_asserts(tree, path, config)
+    rewrite_asserts(tree, py.path.local(path), config)
 
     try:
         co = compile(tree, path, "exec", dont_inherit=True)
