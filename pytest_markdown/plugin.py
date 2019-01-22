@@ -2,7 +2,7 @@ import ast
 import types
 from linecache import cache
 
-import CommonMark
+import commonmark
 import pytest
 from _pytest.assertion.rewrite import rewrite_asserts
 from _pytest.python import Module
