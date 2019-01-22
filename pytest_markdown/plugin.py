@@ -62,7 +62,7 @@ class MarkdownCollector(object):
     def __init__(self, item):
         super().__init__()
         self.item = item
-        self.ast = CommonMark.Parser().parse(self.item.fspath.open().read())
+        self.ast = commonmark.Parser().parse(self.item.fspath.open().read())
         self.stack = [(0, self.item, self.item.name,)]
         self.collected = []
 
