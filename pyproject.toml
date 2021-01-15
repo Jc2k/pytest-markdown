@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pytest_markdown"
 version = "1.0.1"
-description = "Docker integration tests for pytest"
+description = "Test your markdown docs with pytest"
 authors = ["John Carr <john.carr@unrouted.co.uk>"]
 license = "Apache-2.0"
 readme = "README.md"
